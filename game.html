@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #a5bfa4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 90%;
+            max-width: 800px;
+            margin-bottom: 20px;
+            background-color: #6e8b65;
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none; /* Hidden initially */
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+            gap: 10px;
+            width: 90%;
+            max-width: 800px;
+            display: none; /* Hidden initially */
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #2e5235;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50%;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .cell:hover {
+            transform: scale(1.1);
+            background-color: #3a6b45;
+        }
+
+        .cell.active {
+            background-color: #ff6347;
+        }
+
+        .dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            display: none;
+            z-index: 1000;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .dialog h2 {
+            margin: 0 0 10px;
+        }
+
+        .dialog button {
+            padding: 10px 20px;
+            background-color: #6e8b65;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .dialog button:hover {
+            background-color: #567a4b;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 999;
+        }
+
+        #startScreen {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #playButton {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #6e8b65;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #playButton:hover {
+            background-color: #567a4b;
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                text-align: center;
+                flex-wrap: wrap;
+            }
+
+            .grid {
+                grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+            }
+
+            .cell {
+                width: 30px;
+                height: 30px;
+                font-size: 14px;
+            }
+
+            .dialog {
+                padding: 15px;
+                font-size: 14px;
+            }
+
+            .dialog button {
+                padding: 8px 15px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="startScreen">
+        <h1>Welcome to the Number Game</h1>
+        <button id="playButton" onclick="initializeGame()">Play</button>
+    </div>
+
+    <div class="header" id="header">
+        <div>Hit: <span id="hit">0</span></div>
+        <div>Timer: <span id="timer">30</span></div>
+        <div>Score: <span id="score">0</span></div>
+    </div>
+    <div class="grid" id="grid"></div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="dialog" id="dialog">
+        <h2>Game Over!</h2>
+        <p>Your score is <span id="finalScore"></span></p>
+        <button onclick="restartGame()">Restart</button>
+    </div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const hitEl = document.getElementById('hit');
+        const timerEl = document.getElementById('timer');
+        const scoreEl = document.getElementById('score');
+        const dialog = document.getElementById('dialog');
+        const overlay = document.getElementById('overlay');
+        const finalScoreEl = document.getElementById('finalScore');
+        const startScreen = document.getElementById('startScreen');
+        const header = document.getElementById('header');
+
+        let hitCount = 0;
+        let score = 0;
+        let timer = 30;
+        let activeCell = null;
+
+        function createGrid() {
+            const cellCount = window.innerWidth <= 600 ? 50 : 100;
+            grid.innerHTML = '';
+            for (let i = 0; i < cellCount; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.textContent = Math.floor(Math.random() * 10);
+                grid.appendChild(cell);
+
+                cell.addEventListener('click', () => {
+                    if (cell === activeCell) {
+                        hitCount++;
+                        score += parseInt(cell.textContent);
+                        hitEl.textContent = hitCount;
+                        scoreEl.textContent = score;
+                        activateRandomCell();
+                    } else {
+                        endGame();
+                    }
+                });
+            }
+        }
+
+        function activateRandomCell() {
+            if (activeCell) {
+                activeCell.classList.remove('active');
+            }
+
+            const cells = document.querySelectorAll('.cell');
+            const randomIndex = Math.floor(Math.random() * cells.length);
+            activeCell = cells[randomIndex];
+            activeCell.classList.add('active');
+        }
+
+        function startGame() {
+            const interval = setInterval(() => {
+                timer--;
+                timerEl.textContent = timer;
+
+                if (timer <= 0) {
+                    clearInterval(interval);
+                    endGame();
+                }
+            }, 1000);
+
+            activateRandomCell();
+        }
+
+        function endGame() {
+            grid.style.display = 'none';
+            header.style.display = 'none';
+            overlay.style.display = 'block';
+            dialog.style.display = 'block';
+            finalScoreEl.textContent = score;
+        }
+
+        function restartGame() {
+            grid.innerHTML = '';
+            grid.style.display = 'grid';
+            overlay.style.display = 'none';
+            dialog.style.display = 'none';
+            header.style.display = 'flex';
+            hitCount = 0;
+            score = 0;
+            timer = 30;
+            hitEl.textContent = hitCount;
+            scoreEl.textContent = score;
+            timerEl.textContent = timer;
+            createGrid();
+            startGame();
+        }
+
+        function initializeGame() {
+            startScreen.style.display = 'none';
+            header.style.display = 'flex';
+            grid.style.display = 'grid';
+            createGrid();
+            startGame();
+        }
+    </script>
+</body>
+</html>
